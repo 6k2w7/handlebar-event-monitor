@@ -239,8 +239,9 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
     
     total_events = len(all_events)
     on_sale_count = len(on_sale_events)
-    no_tickets = total_events - on_sale_count - sum(1 for e in all_events if 'Error' in e['status'])
-    error_count = sum(1 for e in all_events if 'Error' in e['status'])
+    no_tickets = total_events - on_sale_count - sum(1 for e in all_events if 'Error' in e.get('status', ''))
+    error_count = sum(1 for e in all_events if 'Error' in e.get('status', ''))
+
     
     summary_data = [
         ['Metric', 'Count', 'Percentage'],
