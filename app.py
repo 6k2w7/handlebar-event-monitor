@@ -281,7 +281,7 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         
         # Create table data for on-sale events
         sale_data = [['Date', 'Event Name', 'Price']]
-        for event in sorted(on_sale_events, key=lambda x: x['date']):
+        for event in sorted(on_sale_events, key=lambda x: x.get('date', '')):
             sale_data.append([
                 event['date'],
                 event['event_name'][:50] + ('...' if len(event['event_name']) > 50 else ''),
@@ -312,7 +312,7 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
     
     # Create table data for all events
     table_data = [['Date', 'Event Name', 'Price', 'Status']]
-    for event in sorted(all_events, key=lambda x: x['date']):
+    for event in sorted(all_events, key=lambda x: x.get('date', '')):
         # Truncate long event names
         event_name = event['event_name'][:45] + ('...' if len(event['event_name']) > 45 else '')
         
