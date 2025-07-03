@@ -196,10 +196,8 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
                            rightMargin=50, leftMargin=50, 
                            topMargin=50, bottomMargin=50)
     
-    # Define styles
     styles = getSampleStyleSheet()
-    
-    # Custom styles
+
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
@@ -208,7 +206,7 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         alignment=TA_CENTER,
         textColor=colors.HexColor('#1d1d1f')
     )
-    
+
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
@@ -217,7 +215,7 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         spaceBefore=20,
         textColor=colors.HexColor('#007aff')
     )
-    
+
     summary_style = ParagraphStyle(
         'Summary',
         parent=styles['Normal'],
@@ -225,24 +223,19 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         spaceAfter=6,
         textColor=colors.HexColor('#1d1d1f')
     )
-    
-    # Build story (content)
+
     story = []
-    
-    # Header
     story.append(Paragraph("Event Availability Report", title_style))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", summary_style))
     story.append(Spacer(1, 20))
-    
-    # Executive Summary
+
     story.append(Paragraph("Executive Summary", heading_style))
-    
+
     total_events = len(all_events)
     on_sale_count = len(on_sale_events)
     no_tickets = total_events - on_sale_count - sum(1 for e in all_events if 'Error' in e.get('status', ''))
     error_count = sum(1 for e in all_events if 'Error' in e.get('status', ''))
 
-    
     summary_data = [
         ['Metric', 'Count', 'Percentage'],
         ['Total Events Checked', str(total_events), '100%'],
@@ -250,7 +243,7 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         ['Events Not Available', str(no_tickets), f'{(no_tickets/total_events*100):.1f}%' if total_events > 0 else '0%'],
         ['Connection Errors', str(error_count), f'{(error_count/total_events*100):.1f}%' if total_events > 0 else '0%'],
     ]
-    
+
     summary_table = Table(summary_data, colWidths=[2.5*inch, 1*inch, 1*inch])
     summary_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007aff')),
@@ -264,37 +257,31 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d2d2d7')),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
     ]))
-    
     story.append(summary_table)
     story.append(Spacer(1, 20))
-    
-    # Revenue Summary (if applicable)
+
     if total_revenue > 0:
         story.append(Paragraph("Revenue Summary", heading_style))
         story.append(Paragraph(f"Total Potential Ticket Revenue: <b>${total_revenue:,.2f}</b>", summary_style))
         story.append(Paragraph(f"Average Ticket Price: <b>${total_revenue/on_sale_count:,.2f}</b>", summary_style))
         story.append(Spacer(1, 20))
-    
-    # Events On Sale Section
+
     if on_sale_events:
         story.append(Paragraph("Events Currently On Sale", heading_style))
-        
-        # Create table data for on-sale events
         sale_data = [['Date', 'Event Name', 'Price']]
         for event in sorted(on_sale_events, key=lambda x: x.get('date', '')):
             sale_data.append([
-                event['date'],
-                event['event_name'][:50] + ('...' if len(event['event_name']) > 50 else ''),
-                event['price']
+                event.get('date', 'TBD'),
+                event.get('event_name', 'Untitled')[:50] + ('...' if len(event.get('event_name', '')) > 50 else ''),
+                event.get('price', '--')
             ])
-        
         sale_table = Table(sale_data, colWidths=[0.8*inch, 4*inch, 0.8*inch])
         sale_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34c759')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Date column center
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Event name left
-            ('ALIGN', (2, 0), (2, -1), 'CENTER'),  # Price column center
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('ALIGN', (2, 0), (2, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
@@ -303,75 +290,60 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
             ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d2d2d7')),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0fff4')])
         ]))
-        
         story.append(sale_table)
         story.append(Spacer(1, 30))
-    
-    # Complete Event List
+
     story.append(Paragraph("Complete Event Status Report", heading_style))
-    
-    # Create table data for all events
     table_data = [['Date', 'Event Name', 'Price', 'Status']]
     for event in sorted(all_events, key=lambda x: x.get('date', '')):
-        # Truncate long event names
-        event_name = event['event_name'][:45] + ('...' if len(event['event_name']) > 45 else '')
-        
-        # Clean up status for display
-        status = event['status'].replace('✓ ', '').replace('✗ ', '').replace('⚠ ', '')
-        
+        event_name = event.get('event_name', 'Untitled')[:45] + ('...' if len(event.get('event_name', '')) > 45 else '')
+        status_clean = event.get('status', '--').replace('✓ ', '').replace('✗ ', '').replace('⚠ ', '')
         table_data.append([
-            event['date'],
+            event.get('date', 'TBD'),
             event_name,
-            event['price'],
-            status
+            event.get('price', '--'),
+            status_clean
         ])
-    
-    # Create table
+
     table = Table(table_data, colWidths=[0.8*inch, 3.5*inch, 0.8*inch, 1*inch])
     table.setStyle(TableStyle([
-        # Header styling
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1d1d1f')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'),  # Event names left-aligned
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        
-        # Data styling
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 9),
         ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d2d2d7')),
-        
-        # Alternating row colors
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
     ]))
-    
-    # Color-code status cells
+
     for i, event in enumerate(all_events, 1):
-        if 'On Sale' in event['status']:
+        status = event.get('status', '')
+        if 'On Sale' in status:
             table.setStyle(TableStyle([
                 ('BACKGROUND', (3, i), (3, i), colors.HexColor('#f0fff4')),
                 ('TEXTCOLOR', (3, i), (3, i), colors.HexColor('#34c759'))
             ]))
-        elif 'Error' in event['status']:
+        elif 'Error' in status:
             table.setStyle(TableStyle([
                 ('BACKGROUND', (3, i), (3, i), colors.HexColor('#fffaf0')),
                 ('TEXTCOLOR', (3, i), (3, i), colors.HexColor('#ff9500'))
             ]))
-        else:  # No tickets
+        else:
             table.setStyle(TableStyle([
                 ('BACKGROUND', (3, i), (3, i), colors.HexColor('#fff5f5')),
                 ('TEXTCOLOR', (3, i), (3, i), colors.HexColor('#ff3b30'))
             ]))
-    
+
     story.append(table)
     story.append(Spacer(1, 30))
-    
-    # Footer
+
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#d2d2d7')))
     story.append(Spacer(1, 10))
-    
+
     footer_style = ParagraphStyle(
         'Footer',
         parent=styles['Normal'],
@@ -379,13 +351,11 @@ def generate_pdf_report(filename, all_events, on_sale_events, total_revenue):
         alignment=TA_CENTER,
         textColor=colors.HexColor('#86868b')
     )
-    
+
     story.append(Paragraph(f"Report generated by Event Monitor • {datetime.now().strftime('%B %d, %Y')}", footer_style))
     story.append(Paragraph("This report shows current ticket availability and pricing for all checked events.", footer_style))
-    
-    # Build PDF
+
     doc.build(story)
-    
     return filename
 
 def main():
